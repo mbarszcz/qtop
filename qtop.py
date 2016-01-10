@@ -1383,6 +1383,7 @@ def get_key_val_from_option_string(string):
 
 
 def check_python_version():
+    return
     try:
         assert sys.version_info[0] == 2
         assert sys.version_info[1] in (6,7)
