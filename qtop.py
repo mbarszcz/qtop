@@ -9,7 +9,7 @@
 
 from operator import itemgetter
 import datetime
-from itertools import izip, izip_longest
+from itertools import zip_longest
 import subprocess
 import time
 import sys
@@ -91,7 +91,7 @@ def decide_remapping(cluster_dict, _all_letters, _all_str_digits_with_empties):
     # all needed for decide_remapping
     cluster_dict['node_subclusters'] = set(_all_letters)
     cluster_dict['_all_str_digits_with_empties'] = _all_str_digits_with_empties
-    cluster_dict['all_str_digits'] = filter(lambda x: x != "", _all_str_digits_with_empties)
+    cluster_dict['all_str_digits'] = [x for x in _all_str_digits_with_empties if x != ""]
     cluster_dict['all_digits'] = [int(digit) for digit in cluster_dict['all_str_digits']]
 
     if options.BLINDREMAP or \
@@ -116,9 +116,8 @@ def decide_remapping(cluster_dict, _all_letters, _all_str_digits_with_empties):
             'more than %s of nodes have are down/offline' % float(config['percentage']) or False
         numbering_collisions = min(cluster_dict['workernode_list']) >= config['exotic_starting_wn_nr'] and \
             'there are numbering collisions' or False
-        print
-        logging.debug('Remapping decided due to: \n\t %s' % filter(None,
-            [user_request, subclusters, exotic_starting, percentage_unassigned, numbering_collisions]))
+        print()
+        logging.debug('Remapping decided due to: \n\t %s' % [_f for _f in [user_request, subclusters, exotic_starting, percentage_unassigned, numbering_collisions] if _f])
     # max(cluster_dict['workernode_list']) was cluster_dict['highest_wn']
 
 
@@ -134,7 +133,7 @@ def calculate_cluster(worker_nodes):
 
     cluster_dict['total_wn'] = len(worker_nodes)  # == existing_nodes
     cluster_dict['workernode_list'] = []
-    cluster_dict['workernode_list_remapped'] = range(1, cluster_dict['total_wn'] + 1)  # leave xrange aside for now
+    cluster_dict['workernode_list_remapped'] = list(range(1, cluster_dict['total_wn'] + 1))  # leave xrange aside for now
 
     _all_letters = []
     _all_str_digits_with_empties = []
@@ -198,11 +197,11 @@ def do_name_remapping(cluster_dict):
     renames hostnames according to user remapping in conf file (for the wn id label lines)
     """
     label_max_len = int(config['workernodes_matrix'][0]['wn id lines']['max_len'])
-    for _, state_corejob_dn in cluster_dict['workernode_dict'].items():
+    for _, state_corejob_dn in list(cluster_dict['workernode_dict'].items()):
         _host = state_corejob_dn['domainname'].split('.', 1)[0]
         changed = False
         for remap_line in config['remapping']:
-            pat, repl = remap_line.items()[0]
+            pat, repl = list(remap_line.items())[0]
             repl = eval(repl) if repl.startswith('lambda') else repl
             if re.search(pat, _host):
                 changed = True
@@ -214,7 +213,7 @@ def do_name_remapping(cluster_dict):
 
 
 def nodes_with_jobs(worker_nodes):
-    for _, pbs_node in worker_nodes.iteritems():
+    for _, pbs_node in worker_nodes.items():
         if 'core_job_map' in pbs_node:
             yield pbs_node
 
@@ -222,19 +221,19 @@ def nodes_with_jobs(worker_nodes):
 def display_job_accounting_summary(cluster_dict, total_running_jobs, total_queued_jobs, qstatq_list):
     if options.REMAP:
         if options.CLASSIC:
-            print '=== WARNING: --- Remapping WN names and retrying heuristics... good luck with this... ---'
+            print('=== WARNING: --- Remapping WN names and retrying heuristics... good luck with this... ---')
         else:
             logging.warning('=== WARNING: --- Remapping WN names and retrying heuristics... good luck with this... ---')
     ansi_delete_char = "\015"  # this removes the first ever character (space) appearing in the output
-    print '%(del)s%(name)s report tool. All bugs added by sfranky@gmail.com. Cross fingers now...' \
-        % {'name': 'PBS' if options.CLASSIC else 'Queueing System', 'del': ansi_delete_char}
+    print('%(del)s%(name)s report tool. All bugs added by sfranky@gmail.com. Cross fingers now...' \
+        % {'name': 'PBS' if options.CLASSIC else 'Queueing System', 'del': ansi_delete_char})
 
     if not options.WATCH:
-        print 'Please try: watch -d %s/qtop.py -s <SOURCEDIR>\n' % QTOPPATH
-    print colorize('===> ', 'Gray_D') + colorize('Job accounting summary', 'White') + colorize(' <=== ', 'Gray_D') + \
-          '%s WORKDIR = %s' % (colorize(str(datetime.datetime.today())[:-7], 'White'), QTOPPATH)
+        print('Please try: watch -d %s/qtop.py -s <SOURCEDIR>\n' % QTOPPATH)
+    print(colorize('===> ', 'Gray_D') + colorize('Job accounting summary', 'White') + colorize(' <=== ', 'Gray_D') + \
+          '%s WORKDIR = %s' % (colorize(str(datetime.datetime.today())[:-7], 'White'), QTOPPATH))
 
-    print '%(Usage Totals)s:\t%(online_nodes)s/%(total_nodes)s %(Nodes)s | %(working_cores)s/%(total_cores)s %(Cores)s |' \
+    print('%(Usage Totals)s:\t%(online_nodes)s/%(total_nodes)s %(Nodes)s | %(working_cores)s/%(total_cores)s %(Cores)s |' \
           '   %(total_run_jobs)s+%(total_q_jobs)s %(jobs)s (R + Q) %(reported_by)s' % \
           {
               'Usage Totals': colorize('Usage Totals', 'Yellow'),
@@ -248,18 +247,18 @@ def display_job_accounting_summary(cluster_dict, total_running_jobs, total_queue
               'total_q_jobs': colorize(str(int(total_queued_jobs)), 'Blue_L'),
               'jobs': colorize('jobs', 'Blue_L'),
               'reported_by': 'reported by qstat - q' if options.CLASSIC else ''
-          }
+          })
 
-    print '%(queues)s: | ' % {'queues': colorize('Queues', 'Yellow')},
+    print('%(queues)s: | ' % {'queues': colorize('Queues', 'Yellow')}, end=' ')
     for q in qstatq_list:
         q_name, q_running_jobs, q_queued_jobs = q['queue_name'], q['run'], q['queued']
         account = q_name if q_name in color_of_account else 'account_not_colored'
-        print "{qname}{star}: {run} {q}|".format(
+        print("{qname}{star}: {run} {q}|".format(
             qname=colorize(q_name, '', account),
             star=colorize('*', 'Red_L') if q['state'].startswith('D') or q['state'].endswith('S') else '',
             run=colorize(q_running_jobs, '', account),
-            q='+ ' + colorize(q_queued_jobs, '', account) + ' ' if q_queued_jobs != '0' else ''),
-    print colorize('* implies blocked', 'Red') + '\n'
+            q='+ ' + colorize(q_queued_jobs, '', account) + ' ' if q_queued_jobs != '0' else ''), end=' ')
+    print(colorize('* implies blocked', 'Red') + '\n')
     # TODO unhardwire states from star kwarg
 
 
@@ -319,7 +318,7 @@ def create_job_counts(user_names, job_states, state_abbrevs):
     counting of R, Q, C, W, E attached to each user
     """
     job_counts = dict()
-    for value in state_abbrevs.values():
+    for value in list(state_abbrevs.values()):
         job_counts[value] = dict()
 
     for user_name, job_state in zip(user_names, job_states):
@@ -346,7 +345,7 @@ def produce_user_lot(_user_names):
     alljobs_of_user = {}
     for user_name in set(_user_names):
         alljobs_of_user[user_name] = _user_names.count(user_name)
-    user_alljobs_sorted_lot = sorted(alljobs_of_user.items(), key=itemgetter(1), reverse=True)
+    user_alljobs_sorted_lot = sorted(list(alljobs_of_user.items()), key=itemgetter(1), reverse=True)
     return user_alljobs_sorted_lot
 
 
@@ -355,7 +354,7 @@ def expand_useraccounts_symbols(config, user_list):
     In case there are more users than the sum number of all numbers and small/capital letters of the alphabet
     """
     if len(user_list) > MAX_UNIX_ACCOUNTS:
-        for i in xrange(MAX_UNIX_ACCOUNTS, len(user_list) + MAX_UNIX_ACCOUNTS):
+        for i in range(MAX_UNIX_ACCOUNTS, len(user_list) + MAX_UNIX_ACCOUNTS):
             config['possible_ids'].append(str(i)[0])
 
 
@@ -382,7 +381,7 @@ def fill_node_cores_column(_node, core_user_map, id_of_username, max_np_range, u
             core, job = str(corejob['core']), str(corejob['job'])
             try:
                 user = user_of_job_id[job]
-            except KeyError, KeyErrorValue:
+            except KeyError as KeyErrorValue:
                 logging.critical('There seems to be a problem with the qstat output. '
                                  'A Job (ID %s) has gone rogue. '
                                  'Please check with the SysAdmin.' % (str(KeyErrorValue)))
@@ -438,7 +437,7 @@ def calc_all_wnid_label_lines(cluster_dict, wns_occupancy):  # (total_wn) in cas
     highest_wn = cluster_dict['highest_wn']
     if NAMED_WNS or options.FORCE_NAMES:
         workernode_dict = cluster_dict['workernode_dict']
-        hosts = [state_corejob_dn['host'] for _, state_corejob_dn in workernode_dict.items()]
+        hosts = [state_corejob_dn['host'] for _, state_corejob_dn in list(workernode_dict.items())]
         node_str_width = len(max(hosts, key=len))
         wn_vert_labels = OrderedDict((str(place), []) for place in range(1, node_str_width + 1))
         for node in workernode_dict:
@@ -484,7 +483,7 @@ def find_matrices_width(wns_occupancy, cluster_dict, DEADWEIGHT=11):
     elif options.REMAP:  # was: ***wn_number < start*** and len(cluster_dict['node_subclusters']) > 1:  # Remapping
         extra_matrices_nr = int(ceil(wn_number / float(term_columns - DEADWEIGHT))) - 1
     else:
-        raise (NotImplementedError, "Not foreseen")
+        raise NotImplementedError
 
     if USER_CUT_MATRIX_WIDTH:  # if the user defines a custom cut (in the configuration file)
         stop = start + USER_CUT_MATRIX_WIDTH
@@ -540,7 +539,7 @@ def print_wnid_lines(d, start, stop, end_labels, transposed_matrices, color_func
     for line_nr, end_label, color in zip(d, end_labels, colors):
         wn_id_str = insert_separators(d[line_nr][start:stop], SEPARATOR, config['vertical_separator_every_X_columns'])
         wn_id_str = ''.join([colorize(elem, color) for elem in wn_id_str])
-        print wn_id_str + end_label
+        print(wn_id_str + end_label)
 
 
 def highlight_alternately(color_a, color_b):
@@ -658,10 +657,10 @@ def display_matrix(workernodes_occupancy):
 
         transposed_matrices.sort(key=lambda item: item[0])
 
-        for line_tuple in izip_longest(*[tpl[2] for tpl in transposed_matrices], fillvalue='  '):
+        for line_tuple in zip_longest(*[tpl[2] for tpl in transposed_matrices], fillvalue='  '):
             join_prints(*line_tuple, sep=config.get('horizontal_separator', None))
         logging.debug('Printed horizontally from %s to %s' % (config['h_start'], h_stop))
-    print
+    print()
 
 
 def print_mult_attr_line(print_char_start, print_char_stop, transposed_matrices, attr_lines, label, color_func=None,
@@ -679,20 +678,20 @@ def print_mult_attr_line(print_char_start, print_char_stop, transposed_matrices,
         # TODO: maybe put attr_line and label as kwd arguments? collect them as **kwargs
         attr_line = insert_separators(line, SEPARATOR, config['vertical_separator_every_X_columns'])
         attr_line = ''.join([colorize(char, color_func) for char in attr_line])
-        print attr_line + "=" + label
+        print(attr_line + "=" + label)
 
 
 def display_user_accounts_pool_mappings(account_jobs_table, pattern_of_id):
     detail_of_name = get_detail_of_name(account_jobs_table)
-    print colorize('\n===> ', 'Gray_D') + \
+    print(colorize('\n===> ', 'Gray_D') + \
           colorize('User accounts and pool mappings', 'White') + \
           colorize(' <=== ', 'Gray_d') + \
           colorize("  ('all' also includes those in C and W states, as reported by qstat)"
-                   if options.CLASSIC else "  ('all' includes any jobs beyond R and W)", 'Gray_D')
+                   if options.CLASSIC else "  ('all' includes any jobs beyond R and W)", 'Gray_D'))
 
-    print '   R +    Q /  all |    unix account | id| %(msg)s' % \
+    print('   R +    Q /  all |    unix account | id| %(msg)s' % \
           {'msg': 'Grid certificate DN (info only available under elevated privileges)' if options.CLASSIC else
-          'GECOS field or Grid certificate DN'}
+          'GECOS field or Grid certificate DN'})
     for line in account_jobs_table:
         uid, runningjobs, queuedjobs, alljobs, user = line[0], line[1], line[2], line[3], line[4]
         account = pattern_of_id[uid]
@@ -718,7 +717,7 @@ def display_user_accounts_pool_mappings(account_jobs_table, pattern_of_id):
             width15=15 + extra_width,
             width40=40 + extra_width,
         )
-        print print_string
+        print(print_string)
 
 
 def get_core_lines(core_user_map, print_char_start, print_char_stop, pattern_of_id, attrs):
@@ -744,7 +743,7 @@ def calc_core_userid_matrix(cluster_dict, wns_occupancy, job_ids, user_names):
     id_of_username = wns_occupancy['id_of_username']
     _core_user_map = OrderedDict()
     max_np_range = [str(x) for x in range(cluster_dict['max_np'])]
-    user_of_job_id = dict(izip(job_ids, user_names))
+    user_of_job_id = dict(zip(job_ids, user_names))
 
     for core_nr in max_np_range:
         _core_user_map['Core%sline' % str(core_nr)] = []  # Cpu0line, Cpu1line, Cpu2line, .. = '','','', ..
@@ -783,7 +782,7 @@ def calc_general_multiline_attr(cluster_dict, part_name, yaml_key):  # NEW
     for _node in cluster_dict['workernode_dict']:
         state_np_corejob = cluster_dict['workernode_dict'][_node]
         # distribute_state_to_lines
-        for attr_line, ch in izip_longest(multiline_map, state_np_corejob[yaml_key], fillvalue=' '):
+        for attr_line, ch in zip_longest(multiline_map, state_np_corejob[yaml_key], fillvalue=' '):
             try:
                 multiline_map[attr_line].append(ch)
             except KeyError:
@@ -804,7 +803,7 @@ def transpose_matrix(d, colored=False, reverse=False):
     returns a transposed matrix
     """
     pattern_of_id = workernodes_occupancy['pattern_of_id']
-    for tuple in izip_longest(*[[char for char in d[k]] for k in d], fillvalue=" "):
+    for tuple in zip_longest(*[[char for char in d[k]] for k in d], fillvalue=" "):
         if any(j != " " for j in tuple):
             tuple = colored and [colorize(j, '', pattern_of_id[j]) if j in pattern_of_id else j for j in tuple] or list(tuple)
             tuple[:] = tuple[::-1] if reverse else tuple
@@ -818,7 +817,7 @@ def join_prints(*args, **kwargs):
         joined_list.extend(d)
         joined_list.append(kwargs['sep'])
 
-    print "".join(joined_list[h_start:h_stop])
+    print("".join(joined_list[h_start:h_stop]))
     workernodes_occupancy.setdefault('max_full_line_len', len(joined_list))
 
 
@@ -871,7 +870,7 @@ def print_core_lines(core_user_map, print_char_start, print_char_stop, transpose
         return
     for core_line in get_core_lines(core_user_map, print_char_start, print_char_stop, pattern_of_id, attrs):
         try:
-            print core_line
+            print(core_line)
         except IOError:
             # This tries to handle the broken pipe exception that occurs when doing "| head"
             # stdout is closed, no point in continuing
@@ -881,7 +880,7 @@ def print_core_lines(core_user_map, print_char_start, print_char_stop, transpose
             # TODO Find fix.
             try:
                 signal(SIGPIPE, SIG_DFL)
-                print core_line
+                print(core_line)
                 sys.stdout.close()
             except IOError:
                 pass
@@ -897,8 +896,8 @@ def display_wn_occupancy(workernodes_occupancy, cluster_dict):
         note = "/".join(order)
     else:
         note = 'you can read vertically the node IDs; nodes in free state are noted with - '
-    print colorize('===> ', 'Gray_D') + colorize('Worker Nodes occupancy', 'White') + colorize(' <=== ', 'Gray_D') \
-          + colorize('(%s)', 'Gray_D') % note
+    print(colorize('===> ', 'Gray_D') + colorize('Worker Nodes occupancy', 'White') + colorize(' <=== ', 'Gray_D') \
+          + colorize('(%s)', 'Gray_D') % note)
 
     display_matrix(workernodes_occupancy)
     if not eval(config['transpose_wn_matrices']):
@@ -917,7 +916,7 @@ def make_pattern_of_id(wns_occupancy):
         uid, user = line[0], line[4]
         account = re.search('[A-Za-z]+', user).group(0)  #
         for re_account_color in config['user_color_mappings']:
-            re_account = re_account_color.keys()[0]
+            re_account = list(re_account_color.keys())[0]
             try:
                 _ = re.search(re_account, user).group(0)
             except AttributeError:
@@ -985,7 +984,7 @@ def load_yaml_config():
     logging.info('Updated main dictionary. Length: %s items' % len(config))
 
     config['possible_ids'] = list(config['possible_ids'])
-    symbol_map = dict([(chr(x), x) for x in range(33, 48) + range(58, 64) + range(91, 96) + range(123, 126)])
+    symbol_map = dict([(chr(x), x) for x in list(range(33, 48)) + list(range(58, 64)) + list(range(91, 96)) + list(range(123, 126))])
 
     if config['user_color_mappings']:
         [color_of_account.update(d) for d in config['user_color_mappings']]
@@ -1046,7 +1045,7 @@ def filter_list_out(batch_nodes, the_list=None):
     for idx, node in enumerate(batch_nodes):
         if idx in the_list:
             node['mark'] = '*'
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1058,7 +1057,7 @@ def filter_list_out_by_name(batch_nodes, the_list=None):
     for idx, node in enumerate(batch_nodes):
         if node['domainname'].split('.', 1)[0] in the_list:
             node['mark'] = '*'
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1070,7 +1069,7 @@ def filter_list_in_by_name(batch_nodes, the_list=None):
     for idx, node in enumerate(batch_nodes):
         if node['domainname'].split('.', 1)[0] not in the_list:
             node['mark'] = '*'
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1080,7 +1079,7 @@ def filter_list_out_by_node_state(batch_nodes, the_list=None):
     for idx, node in enumerate(batch_nodes):
         if node['state'] in the_list:
             node['mark'] = '*'
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1097,7 +1096,7 @@ def filter_list_out_by_name_pattern(batch_nodes, the_list=None):
                 pass
             else:
                 node['mark'] = '*'
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1114,7 +1113,7 @@ def filter_list_in_by_name_pattern(batch_nodes, the_list=None):
                 node['mark'] = '*'
             else:
                 pass
-    batch_nodes = filter(lambda item: not item.get('mark'), batch_nodes)
+    batch_nodes = [item for item in batch_nodes if not item.get('mark')]
     return batch_nodes
 
 
@@ -1138,8 +1137,8 @@ def filter_batch_nodes(batch_nodes, filter_rules=None):
     else:
         logging.warning("WN Occupancy view is filtered.")
         for rule in filter_rules:
-            filter_func = filter_types[rule.keys()[0]]
-            args = rule.values()[0]
+            filter_func = filter_types[list(rule.keys())[0]]
+            args = list(rule.values())[0]
             batch_nodes = filter_func(batch_nodes, args)
         return batch_nodes
 
@@ -1151,7 +1150,7 @@ def map_batch_nodes_to_wn_dicts(cluster_dict, batch_nodes, options_remap):
     2) remap should be either selected by the user or enforced by the circumstances
     """
     nodes_drop = 0  # count change in nodes after filtering
-    user_sorting = config['sorting'] and config['sorting'].values()[0]
+    user_sorting = config['sorting'] and list(config['sorting'].values())[0]
     user_filtering = config['filtering'] and config['filtering'][0]
 
     if user_sorting and options_remap:
@@ -1253,7 +1252,7 @@ def get_filenames_commands():
     # date = time.strftime("%Y%m%d")  #TODO
     # fn_append = "_" + str(date) if not options.SOURCEDIR else ""
     fn_append = "_" + str(os.getpid()) if not options.SOURCEDIR else ""
-    for fn, path_command in config['schedulers'][scheduler].items():
+    for fn, path_command in list(config['schedulers'][scheduler].items()):
         path, command = path_command.strip().split(', ')
         path = path % {"savepath": options.workdir, "pid": fn_append}
         command = command % {"savepath": options.workdir}
@@ -1285,7 +1284,7 @@ def pick_batch_system():
     if scheduler == 'auto':
         logging.critical('No suitable scheduler was found. '
                          'Please define one in a switch or env variable or in %s' % QTOPCONF_YAML)
-        raise (ValueError, 'No suitable scheduler was found.')
+        raise ValueError
     logging.debug('Selected scheduler is %s' % scheduler)
     return scheduler
 
@@ -1510,7 +1509,7 @@ def quit_program(h_start, h_stop, v_start, v_stop):  # "q", quit
     try:
         raise KeyboardInterrupt
     except KeyboardInterrupt:
-        print '  Exiting...'
+        print('  Exiting...')
         sys.exit(0)
 
 
@@ -1631,12 +1630,12 @@ if __name__ == '__main__':
                 }
                 logging.info('DISPLAY AREA')
 
-                print "\033c",  # the comma here is to avoid losing the whole first line. An empty char still remains, though.
+                print("\033c", end=' ')  # the comma here is to avoid losing the whole first line. An empty char still remains, though.
 
                 for idx, part in enumerate(config['user_display_parts'], 1):
                     display_func, args = display_parts[part][0], display_parts[part][1]
                     display_func(*args) if not sections_off[idx] else None
-                print "\nLog file created in %s" % expandvars(QTOP_LOGFILE)
+                print("\nLog file created in %s" % expandvars(QTOP_LOGFILE))
                 sys.stdout.flush()
                 sys.stdout.close()
                 sys.stdout = stdout  # sys.stdout is back to its normal function (i.e. screen output)

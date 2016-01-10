@@ -116,7 +116,7 @@ class SGEStatMaker(StatMaker):
         except IOError:
             raise
         except:
-            print "File %(filename)s does not appear to contain a proper XML structure. Exiting.." % {"filename": orig_file}
+            print("File %(filename)s does not appear to contain a proper XML structure. Exiting.." % {"filename": orig_file})
             raise
         else:
             root = tree.getroot()

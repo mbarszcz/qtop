@@ -170,12 +170,12 @@ class QStatMaker(StatMaker):
         run_qd_search = '^\s*(?P<tot_run>\d+)\s+(?P<tot_queued>\d+)'  # this picks up the last line contents
 
         with open(orig_file, 'r') as fin:
-            fin.next()
-            fin.next()
+            next(fin)
+            next(fin)
             # server_name = fin.next().split(': ')[1].strip()
-            fin.next()
+            next(fin)
             fin.next().strip()  # the headers line should later define the keys in temp_dict, should they be different
-            fin.next()
+            next(fin)
             for line in fin:
                 line = line.strip()
                 m = re.search(queue_search, line)
@@ -206,7 +206,7 @@ class QStatMaker(StatMaker):
         try:
             job_id, user, job_state, queue = [m.group(x) for x in re_match_positions]
         except AttributeError:
-            print line.strip()
+            print(line.strip())
             sys.exit(0)
         job_id = job_id.split('.')[0]
         user = user if not options.ANONYMIZE else self.anonymize(user, 'users')
@@ -372,7 +372,7 @@ def anonymize_func():
         cnt = '0'
         new_name_parts = [s[0], s_type, cnt]
         if s not in stored_dict:
-            cnt = str(dup_counter.next())
+            cnt = str(next(dup_counter))
             new_name_parts.pop()
             new_name_parts.append(cnt)
         stored_dict.setdefault(s, (''.join(new_name_parts), s_type))

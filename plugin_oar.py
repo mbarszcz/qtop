@@ -78,9 +78,9 @@ def _read_oarnodes_s_yaml(fn_s, write_method):  # todo: fix write_method not bei
         raise
     data = yaml.safe_load(fn_s, DEF_INDENT=4)
     if options.ANONYMIZE:
-        nodes_resids = dict([(anonymize(node, 'wns'), resid_state.items()) for node, resid_state in data.items()])
+        nodes_resids = dict([(anonymize(node, 'wns'), list(resid_state.items())) for node, resid_state in list(data.items())])
     else:
-        nodes_resids = dict([(node, resid_state.items()) for node, resid_state in data.items()])
+        nodes_resids = dict([(node, list(resid_state.items())) for node, resid_state in list(data.items())])
     # import wdb; wdb.set_trace()
     return nodes_resids
 
@@ -88,7 +88,7 @@ def _read_oarnodes_s_yaml(fn_s, write_method):  # todo: fix write_method not bei
 def _read_oarnodes_y_yaml(fn_y):
     with open('oarnodes_y', mode='r') as fin:
         data = yaml.load(fin)
-    resids_jobs = dict([(resid, info.get('jobs', None)) for resid, info in data.items()])
+    resids_jobs = dict([(resid, info.get('jobs', None)) for resid, info in list(data.items())])
     return resids_jobs
 
 
@@ -103,7 +103,7 @@ def _read_oarnodes_y_textyaml(fn):
             oar_node, line = _read_oar_node_y_textyaml(fin, line)
             oar_nodes.update(oar_node)
 
-        resids_jobs = dict([(resid, info.get('jobs', None)) for resid, info in oar_nodes.items()])
+        resids_jobs = dict([(resid, info.get('jobs', None)) for resid, info in list(oar_nodes.items())])
     return resids_jobs
     # return oar_nodes
 

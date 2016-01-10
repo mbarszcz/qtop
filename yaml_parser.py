@@ -111,7 +111,7 @@ def read_yaml_natively(fn, DEF_INDENT=2):
             raw_key_values.update(block)
 
     logging.debug('File state after read_yaml_natively: %s' % fin)
-    a_dict = dict([(key, value) for key, value in raw_key_values.items()])
+    a_dict = dict([(key, value) for key, value in list(raw_key_values.items())])
     return a_dict
 
 
@@ -136,7 +136,7 @@ def read_yaml_config_block(line, fin, get_lines):
         # if line[0] == 0 or (line[0] != 0 and line[1] == '-'):  # same level
         # key_value used below belongs to previous line. It will work for first block line because of short circuit logic
         if line[0] == 0 \
-                or (line[0] == 1 and (key_value.keys()[0] == '-'))\
+                or (line[0] == 1 and (list(key_value.keys())[0] == '-'))\
                 or (line[0] == -1 and line[1] == '-'):  # same level or entry level
             key_value, container = process_line(line, fin, get_lines, parent_container)
             for k in key_value:
