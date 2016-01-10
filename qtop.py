@@ -6,10 +6,15 @@
 #                     Sotiris Fragkiskos       #
 #                     Fotis Georgatos          #
 ################################################
-
+from __future__ import print_function
 from operator import itemgetter
 import datetime
-from itertools import zip_longest
+
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
+ 
 import subprocess
 import time
 import sys

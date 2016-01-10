@@ -1,3 +1,4 @@
+from __future__ import print_function
 __author__ = 'sfranky'
 from xml.etree import ElementTree as etree
 from common_module import logging, check_empty_file, StatMaker, get_new_temp_file, options, anonymize_func
